@@ -1,0 +1,22 @@
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-F_Cu.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-B_Cu.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-F_Paste.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-B_Paste.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-F_Silkscreen.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-B_Silkscreen.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-F_Mask.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-B_Mask.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-Edge_Cuts.gbr'.
+Archivo de trabajo Gerber 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\Proyecto 1 - ELO [Greenhouse Manager]-job.gbrjob' creado.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-F_Cu.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-B_Cu.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-F_Paste.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-B_Paste.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-F_Silkscreen.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-B_Silkscreen.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-F_Mask.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-B_Mask.gbr'.
+Plotted to 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-Edge_Cuts.gbr'.
+Archivo de trabajo Gerber 'C:\Users\ferre\Documents\proyectos de KiCad\ELO\GERBER\Proyecto 1 - ELO [Greenhouse Manager]-job.gbrjob' creado.
+Info: Listo.
+Info: Listo.
