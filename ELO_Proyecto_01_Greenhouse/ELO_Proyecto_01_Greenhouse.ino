@@ -1,6 +1,6 @@
-/* CODE BY MM
- * aprender: strncpy(destination , source, sizeof(destination)); // para pegar *char[] en *char[]
- *
+/* Coded by: Martín Moraga G
+ * debo aprender: strncpy(destination , source, sizeof(destination)); // para pegar *char[] en *char[]
+ * 
  *  
  */
 // Librerias usadas
