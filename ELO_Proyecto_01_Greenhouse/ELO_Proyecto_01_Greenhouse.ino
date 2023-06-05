@@ -32,6 +32,9 @@ const char ADC_3        = 17;  // A3
 const char ADC_6        = 20;  // A6
 const char ADC_7        = 21;  // A7
 
+// Flags (Para evitar congestionar la ejecucion del codigo en runtime)
+unsigned long lastMillState = 0;
+unsigned long lastReportMillis = 0;
 // Enumeraciones para la simplicidad y expandibilidad del codigo
 typedef enum{
   Lu, Ma, Mi, Ju, Vi, Sa, Do
@@ -65,8 +68,9 @@ struct Sensor_float{  // Sensor con valores flotantes
 SoftwareSerial bluetooth(bt_tx, bt_rx); //rx, tx
 DHT dht_1(t_sen_1,DHT11);
 DHT dht_2(t_sen_2,DHT11);
-RTC_DS1307 RTC;
+DS1307 RTC;
 
+int i = 0;
 
 void setup() {
   // Se declaran como salidas/entradas digitales los siguientes pines
@@ -94,8 +98,13 @@ void setup() {
 }
 
 void loop() {
-  makeReport();
-  delay(2000);
+  if(millis()-lastReportMillis > 5000){
+    makeReport();
+    lastReportMillis = millis();
+    i++;
+  }
+  if(i>5) i = 0;
+  ShowState(i);
 }
 
 void beep(uint16_t t){   // Se encarga de hacer "BEEP" y era 
@@ -108,6 +117,10 @@ void makeReport(){
   Serial.println("Reporte Completo");
   makeTempReport();
   makeHumReport();
+  Serial.println();
+  makeSoilMoistReport();
+  Serial.println();
+  makeLuxReport();
   Serial.println();
 }
 
@@ -140,3 +153,79 @@ void makeHumReport(){
   }
   Serial.println();
 }
+void makeSoilMoistReport(){
+  uint16_t sm = analogRead(SoilMoisture);
+  Serial.println("Reporte Humedad Suelo:");
+  Serial.print("- Humedad: ");
+  Serial.print(sm);
+  Serial.println("/1023"); 
+}
+void makeLuxReport(){
+  uint16_t lux = analogRead(LUX_Sens);
+  Serial.println("Reporte Luz:");
+  Serial.print("- Luz: ");
+  Serial.print(lux);
+  Serial.println("/1023"); 
+}
+
+
+
+
+// Mostrar estado actual
+void ShowState(states state){
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+  switch(state){
+    case Working:
+      g = 1;
+      break;    
+    case Failed:
+      r = 1;
+      break;    
+    case Compromized:
+      if(millis()-lastMillState >= 500){
+        r = 1;
+      }else{
+        r = 0;
+      }
+      break;    
+    case Com_Err:
+      if(millis()-lastMillState >= 500){
+        r = 1; b = 0;
+      }else{
+        r = 0; b = 1;
+      }
+      break;
+    case Waiting:
+      if(millis()-lastMillState >= 500){
+        g = 1;
+      }else{
+        g = 0;
+      }
+      break;    
+    case noCom:
+      if(millis()-lastMillState >= 500){
+        b = 1;
+      }else{
+        b = 0;
+      }
+      break;        
+  }
+  digitalWrite(LED01,r);
+  digitalWrite(LED02,g);
+  digitalWrite(LED03,b);
+  if(millis()-lastMillState >= 1000){
+    lastMillState = millis();
+  }
+}
+
+
+
+/*
+
+typedef enum{
+  Working, Failed, Compromized, Com_Err, Waiting, noCom
+} states;
+
+*/
