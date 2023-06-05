@@ -1,6 +1,6 @@
-/* Coded by: Martín Moraga G
- * debo aprender: strncpy(destination , source, sizeof(destination)); // para pegar *char[] en *char[]
- * 
+/* CODE BY MM
+ * aprender: strncpy(destination , source, sizeof(destination)); // para pegar *char[] en *char[]
+ *
  *  
  */
 // Librerias usadas
@@ -70,14 +70,14 @@ RTC_DS1307 RTC;
 
 void setup() {
   // Se declaran como salidas/entradas digitales los siguientes pines
-  pinMode(pump   , 1);
-  pinMode(fan    , 1);
-  pinMode(servo  , 1);
-  pinMode(LED01  , 1);
-  pinMode(LED02  , 1);
-  pinMode(LED03  , 1);
-  pinMode(HEATER , 1);
-  pinMode(BUZZER , 1);
+  pinMode(pump  , 1);
+  pinMode(fan   , 1);
+  pinMode(servo , 1);
+  pinMode(LED01 , 1);
+  pinMode(LED02 , 1);
+  pinMode(LED03 , 1);
+  pinMode(HEATER, 1);
+  pinMode(BUZZER, 1);
 
   // Inicializacion de los modulos
   bluetooth.begin(9600);
@@ -94,24 +94,49 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-
+  makeReport();
+  delay(2000);
 }
 
-void beep(int t){   // Se encarga de hacer "BEEP" y era 
+void beep(uint16_t t){   // Se encarga de hacer "BEEP" y era 
   digitalWrite(BUZZER, 1);
   delay(t);  
   digitalWrite(BUZZER, 0);
 }
 
 void makeReport(){
-  Serial.println("Inicio Reporte:");
-  Serial.println("-- Temperaturas:");
+  Serial.println("Reporte Completo");
+  makeTempReport();
+  makeHumReport();
+  Serial.println();
+}
+
+void makeTempReport(){
+  Serial.println("Reporte Temperatura:");
+  Serial.println("- Temperaturas (Interna/Externa):");
   float t1 = dht_1.readTemperature();
   float t2 = dht_2.readTemperature();
   Serial.print((String)t1 + " - " + (String)t2);
   if(isnan(t1) || isnan(t2)){
-    Serial.print(" --- Error En medicion");
+    Serial.println();
+    Serial.print("Error(es) en ");
+    if(isnan(t1)) Serial.print("Sensor Temperatura Interna   ");
+    if(isnan(t2)) Serial.print("Sensor Temperatura Externa   ");
+    Serial.println();
+  }
+  Serial.println();
+}
+void makeHumReport(){
+  Serial.println("Reporte Humedad:");
+  Serial.println("- Humedad (Interna/Externa):");
+  float h1 = dht_1.readHumidity();
+  float h2 = dht_2.readHumidity();
+  Serial.print((String)h1 + " - " + (String)h2);
+  if(isnan(h1) || isnan(h2)){
+    Serial.println();
+    Serial.print("Error en ");
+    if(isnan(h1)) Serial.print("Sensor Humedad Interna   ");
+    if(isnan(h2)) Serial.print("Sensor Humedad Externa   ");
   }
   Serial.println();
 }
