@@ -37,7 +37,7 @@ const char ADC_7        = 21;  // A7
 
 // Flags (Para evitar congestionar la ejecucion del codigo en runtime)
 unsigned long lastMillState = 0;
-unsigned long lastReportMillis = 0;
+unsigned long lastSensorsCheck = 0;
 
 
 // Enumeraciones para la simplicidad y expandibilidad del codigo
@@ -82,6 +82,8 @@ void stopSensorCommand(String command, Stream* port, uint16_t index);
 void getSensorListCommand(String command, Stream* port, uint16_t index);
 void saveConfigurationCommand(String command, Stream* port, uint16_t index);
 void loadConfigurationCommand(String command, Stream* port, uint16_t index);
+void getEEPROMCommand(String command, Stream* port, uint16_t index);
+void loadToEEPROMCommand(String command, Stream* port, uint16_t index);
 
 
 // Arreglo de comandos
@@ -92,6 +94,8 @@ CommandMapping MMCommandMap[] = {
   {"MM+GET_SENSOR_LIST"   , &getSensorListCommand    },
   {"MM+SAVE_CONFIGURATION", &saveConfigurationCommand},
   {"MM+LOAD_CONFIGURATION", &loadConfigurationCommand},
+  {"MM+GET_EEPROM"        , &getEEPROMCommand        },
+  {"MM+LOAD_TO_EEPROM"    , &loadToEEPROMCommand     }
 };
 
 // Arreglo de comandos más robusto
@@ -129,7 +133,6 @@ Sensor* sensorsList[] = {
   &soil_moisture
 };
 
-int i = 0;
 
 void setup() {
   // Se declaran como salidas/entradas digitales los siguientes pines
@@ -169,17 +172,14 @@ void setup() {
 }
 
 void loop() {
-  /*
   now = RTC.now();
-  if(millis()-lastReportMillis > 10000){
-    makeReport();
-    lastReportMillis = millis();
-    i++;
+  if(millis()-lastSensorsCheck > 100){
+    //makeReport();
+    checkMoisture();
+    checkTemp();
+    lastSensorsCheck = millis();
   }
-  if(i>5) i = 0;
-  ShowState(i);
   //Serial.println(EEPROM.length());
-  */
   checkComm(&Serial);
   checkComm(&bluetooth);
 }
@@ -197,6 +197,7 @@ void checkComm(Stream* port){
       processCommand(inComm, port);
     }else{
       port->println("Comando Invalido");
+      beep(25);
     }
   }
 }
@@ -310,7 +311,7 @@ void processCommand(String command, Stream* port) {
     }
   }
   
-  // Si no se encuentra una coincidencia, esque eres bruto
+  // Si no se encuentra una coincidencia
   port->println("Comando no válido");
 }*/
 
@@ -320,14 +321,14 @@ void processCommand(String command, Stream* port) {
   for (int i = 0; i < sizeof(MMCommandMap)/sizeof(CommandMapping); i++) {
     if (command.startsWith(MMCommandMap[i].command)) {
       index = MMCommandMap[i].command.length();
-      
+      // un poco de magia negra para poder invocar la funcion a la que apuntaba el puntero
       void (*functionPtr)(String, Stream*,uint16_t) = reinterpret_cast<void (*)(String, Stream*,uint16_t)>(MMCommandMap[i].function);
       functionPtr(command, port, index);
       return;
     }
   }
   
-  // Si no se encuentra una coincidencia
+  // Si no se encuentra una coincidencia, esque eres bruto
   port->println("Comando no válido");
 }
 
@@ -355,6 +356,21 @@ void saveConfigurationCommand(String command, Stream* port, uint16_t index){
 void loadConfigurationCommand(String command, Stream* port, uint16_t index){
   
 }
+void getEEPROMCommand(String command, Stream* port, uint16_t index){
+
+}
+void loadToEEPROMCommand(String command, Stream* port, uint16_t index){
+  
+}
+
+
+void checkMoisture(){
+
+}
+void checkTemp(){
+
+}
+
 
 
 
