@@ -76,16 +76,15 @@ struct CommandMapping {   // Util para asignar funciones a un texto
 };
 
 // Prototipado de funciones
-void getSensorDataCommand(String command, Stream* port);
-void startSensorCommand(String command, Stream* port);
-void stopSensorCommand(String command, Stream* port);
-void getSensorListCommand(String command, Stream* port);
-void saveConfigurationCommand(String command, Stream* port);
-void loadConfigurationCommand(String command, Stream* port);
+void getSensorDataCommand(String command, Stream* port, uint16_t index);
+void startSensorCommand(String command, Stream* port, uint16_t index);
+void stopSensorCommand(String command, Stream* port, uint16_t index);
+void getSensorListCommand(String command, Stream* port, uint16_t index);
+void saveConfigurationCommand(String command, Stream* port, uint16_t index);
+void loadConfigurationCommand(String command, Stream* port, uint16_t index);
 
 
 // Arreglo de comandos
-
 CommandMapping MMCommandMap[] = {
   {"MM+GET_SENSOR_DATA"   , &getSensorDataCommand    },
   {"MM+START_SENSOR"      , &startSensorCommand      },
@@ -110,7 +109,8 @@ CommandMapping MMCommandMap[] = {
 SoftwareSerial bluetooth(bt_tx, bt_rx); //rx, tx
 DHT dht_1(t_sen_1,DHT11);
 DHT dht_2(t_sen_2,DHT11);
-RTC_DS1307 RTC;
+DS1307 RTC;
+//RTC_DS1307 RTC;
 DateTime now;
 
 
@@ -120,6 +120,14 @@ Sensor temp_outside  = {"Temperatura Externa",1,0,0,0,2};
 Sensor hum_inside    = {"Humedad Interna"    ,2,0,0,0,2};
 Sensor hum_outside   = {"Humedad Externa"    ,3,0,0,0,2};
 Sensor soil_moisture = {"Humedad Suelo"      ,4,0,0,0,2};
+
+Sensor* sensorsList[] = {
+  &temp_inside  , 
+  &temp_outside ,
+  &hum_inside   , 
+  &hum_outside  ,
+  &soil_moisture
+};
 
 int i = 0;
 
@@ -172,6 +180,25 @@ void loop() {
   ShowState(i);
   //Serial.println(EEPROM.length());
   */
+  checkComm(&Serial);
+  checkComm(&bluetooth);
+}
+
+void checkComm(Stream* port){
+  String inComm = "";
+  if(port->available()){
+    inComm = port->readStringUntil("\n");
+    inComm.trim();
+    inComm.toUpperCase();
+    if(inComm.equalsIgnoreCase("MM")){
+      // Reporte Completo
+      port->println("Reporte Completo en Camino!");
+    }else if(inComm.startsWith("MM+")){
+      processCommand(inComm, port);
+    }else{
+      port->println("Comando Invalido");
+    }
+  }
 }
 
 void beep(uint16_t t){   // Se encarga de hacer "BEEP" y era 
@@ -289,10 +316,13 @@ void processCommand(String command, Stream* port) {
 
 
 void processCommand(String command, Stream* port) {
-  for (int i = 0; i < sizeof(MMCommandMap) / 2; i++) {
-    if (command.equalsignorecase(MMCommandMap[i].command)) {
-      void (*functionPtr)(String, Stream*) = reinterpret_cast<void (*)(String, Stream*)>(MMCommandMap[i].function);
-      functionPtr(command, port);
+  uint16_t index = 0;
+  for (int i = 0; i < sizeof(MMCommandMap)/sizeof(CommandMapping); i++) {
+    if (command.startsWith(MMCommandMap[i].command)) {
+      index = MMCommandMap[i].command.length();
+      
+      void (*functionPtr)(String, Stream*,uint16_t) = reinterpret_cast<void (*)(String, Stream*,uint16_t)>(MMCommandMap[i].function);
+      functionPtr(command, port, index);
       return;
     }
   }
@@ -303,22 +333,26 @@ void processCommand(String command, Stream* port) {
 
 
 
-void getSensorDataCommand(String command, Stream* port){
+void getSensorDataCommand(String command, Stream* port, uint16_t index){
   
 }
-void startSensorCommand(String command, Stream* port){
+void startSensorCommand(String command, Stream* port, uint16_t index){
 
 }
-void stopSensorCommand(String command, Stream* port){
+void stopSensorCommand(String command, Stream* port, uint16_t index){
   
 }
-void getSensorListCommand(String command, Stream* port){
-
+void getSensorListCommand(String command, Stream* port, uint16_t index){
+  for(uint16_t i = 0; i < sizeof(sensorsList)/sizeof(Sensor*); i++){
+    port->print(i + " - ");
+    port->print(sensorsList[i]->name);
+    port->println();
+  }
 }
-void saveConfigurationCommand(String command, Stream* port){
+void saveConfigurationCommand(String command, Stream* port, uint16_t index){
   
 }
-void loadConfigurationCommand(String command, Stream* port){
+void loadConfigurationCommand(String command, Stream* port, uint16_t index){
   
 }
 
@@ -346,9 +380,6 @@ void enviarValorSerial(Stream* serialPtr, int valor) {
 }
 
 */
-
-
-
 
 
 
