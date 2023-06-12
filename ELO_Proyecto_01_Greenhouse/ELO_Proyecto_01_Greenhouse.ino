@@ -1,14 +1,17 @@
 /* CODE BY MM
  * aprender: strncpy(destination , source, sizeof(destination)); // para pegar *char[] en *char[]
  *
+ * 
  *  
  */
+ 
 // Librerias usadas
 #include <SoftwareSerial.h>
 #include <Wire.h>
 #include <RTClib.h>
 #include <DHT.h>
 #include <DHT_U.h>
+#include <EEPROM.h>
 
 // PINES Digitales
 const char bt_rx   =  2;
@@ -35,6 +38,8 @@ const char ADC_7        = 21;  // A7
 // Flags (Para evitar congestionar la ejecucion del codigo en runtime)
 unsigned long lastMillState = 0;
 unsigned long lastReportMillis = 0;
+
+
 // Enumeraciones para la simplicidad y expandibilidad del codigo
 typedef enum{
   Lu, Ma, Mi, Ju, Vi, Sa, Do
@@ -47,28 +52,74 @@ typedef enum{
 } states;
 typedef enum{
   ReturnToDefault, TotalReport, Report, Monitor, UpdateTime, Recived, RemoteControlActuator, QuitRemoteControlActuator
-} comComands;
+} comComands; // Comandos de comunicacion por bluetooth
+typedef enum{
+  MMRESET, MMSTART, MMSTOP, MMCHECK, MMGET, MMSET, MMTEST, MMDISCONECT  
+} MMComands; // Los Comandos "MM" son semejantes a los comandos "AT" de los modems y al igual que estos la nomenclaura es "MM+" el comando o simplemente "MM" para pedir un reporte
+typedef enum{
+  LOWMOISTURE, HIGHMOISTURE, LOWTEMP, HIGHTEMP
+} ControlStates;
+
 
 // Estructurtas Utiles para la simplicidad y expandibilidad del codigo
-struct Sensor_int{  // Sensor con valores enteros de 16bit sin signos
-  char name[26];
-  uint16_t value;
-  uint16_t min_val;
-  uint16_t max_val;
-}; // Struct Size: 32 bytes
+struct Sensor{  // Sensor con valores enteros de 8bit sin signos
+  char name[25];
+  uint16_t id;
+  uint8_t value;
+  uint8_t min_val;
+  uint8_t max_val;
+  uint16_t storage_length;
+};
+struct CommandMapping {   // Util para asignar funciones a un texto
+  String command;
+  void *function;
+};
 
-struct Sensor_float{  // Sensor con valores flotantes
-  char name[20];
-  float value;
-  float min_val;
-  float max_val;
-}; // Struct Size: 32 bytes
+// Prototipado de funciones
+void getSensorDataCommand(String command, Stream* port);
+void startSensorCommand(String command, Stream* port);
+void stopSensorCommand(String command, Stream* port);
+void getSensorListCommand(String command, Stream* port);
+void saveConfigurationCommand(String command, Stream* port);
+void loadConfigurationCommand(String command, Stream* port);
+
+
+// Arreglo de comandos
+
+CommandMapping MMCommandMap[] = {
+  {"MM+GET_SENSOR_DATA"   , &getSensorDataCommand    },
+  {"MM+START_SENSOR"      , &startSensorCommand      },
+  {"MM+STOP_SENSOR"       , &stopSensorCommand       },
+  {"MM+GET_SENSOR_LIST"   , &getSensorListCommand    },
+  {"MM+SAVE_CONFIGURATION", &saveConfigurationCommand},
+  {"MM+LOAD_CONFIGURATION", &loadConfigurationCommand},
+};
+
+// Arreglo de comandos más robusto
+/*CommandMapping MMCommandMap[] = {
+  {"MM+GET_SENSOR_DATA"   , reinterpret_cast<void *>(&getSensorDataCommand)    },
+  {"MM+START_SENSOR"      , reinterpret_cast<void *>(&startSensorCommand)      },
+  {"MM+STOP_SENSOR"       , reinterpret_cast<void *>(&stopSensorCommand)       },
+  {"MM+GET_SENSOR_LIST"   , reinterpret_cast<void *>(&getSensorListCommand)    },
+  {"MM+SAVE_CONFIGURATION", reinterpret_cast<void *>(&saveConfigurationCommand)},
+  {"MM+LOAD_CONFIGURATION", reinterpret_cast<void *>(&loadConfigurationCommand)},
+};*/
+
 
 // Declaracion de los Modulos y Sensores
 SoftwareSerial bluetooth(bt_tx, bt_rx); //rx, tx
 DHT dht_1(t_sen_1,DHT11);
 DHT dht_2(t_sen_2,DHT11);
-DS1307 RTC;
+RTC_DS1307 RTC;
+DateTime now;
+
+
+//                     Los Valores de acá  no son relevantes aparte de los dos primeros y el último
+Sensor temp_inside   = {"Temperatura Interna",0,0,0,0,2};
+Sensor temp_outside  = {"Temperatura Externa",1,0,0,0,2};
+Sensor hum_inside    = {"Humedad Interna"    ,2,0,0,0,2};
+Sensor hum_outside   = {"Humedad Externa"    ,3,0,0,0,2};
+Sensor soil_moisture = {"Humedad Suelo"      ,4,0,0,0,2};
 
 int i = 0;
 
@@ -91,20 +142,36 @@ void setup() {
   Wire.begin();
   RTC.begin();
 
+  SensorDataCheckEEPROM(&temp_inside  );
+  SensorDataCheckEEPROM(&temp_outside );
+  SensorDataCheckEEPROM(&hum_inside   );
+  SensorDataCheckEEPROM(&hum_outside  );
+  SensorDataCheckEEPROM(&soil_moisture);  
+
+  PrintAllEEPROM();
+  Serial.println();
+  Serial.println();
+  Serial.println();
+
   bluetooth.setTimeout(100);
   Serial.setTimeout(100);
-  DateTime now = RTC.now();
-  
+  now = RTC.now();
+  delay(20000);
+
 }
 
 void loop() {
-  if(millis()-lastReportMillis > 5000){
+  /*
+  now = RTC.now();
+  if(millis()-lastReportMillis > 10000){
     makeReport();
     lastReportMillis = millis();
     i++;
   }
   if(i>5) i = 0;
   ShowState(i);
+  //Serial.println(EEPROM.length());
+  */
 }
 
 void beep(uint16_t t){   // Se encarga de hacer "BEEP" y era 
@@ -112,64 +179,6 @@ void beep(uint16_t t){   // Se encarga de hacer "BEEP" y era
   delay(t);  
   digitalWrite(BUZZER, 0);
 }
-
-void makeReport(){
-  Serial.println("Reporte Completo");
-  makeTempReport();
-  makeHumReport();
-  Serial.println();
-  makeSoilMoistReport();
-  Serial.println();
-  makeLuxReport();
-  Serial.println();
-}
-
-void makeTempReport(){
-  Serial.println("Reporte Temperatura:");
-  Serial.println("- Temperaturas (Interna/Externa):");
-  float t1 = dht_1.readTemperature();
-  float t2 = dht_2.readTemperature();
-  Serial.print((String)t1 + " - " + (String)t2);
-  if(isnan(t1) || isnan(t2)){
-    Serial.println();
-    Serial.print("Error(es) en ");
-    if(isnan(t1)) Serial.print("Sensor Temperatura Interna   ");
-    if(isnan(t2)) Serial.print("Sensor Temperatura Externa   ");
-    Serial.println();
-  }
-  Serial.println();
-}
-void makeHumReport(){
-  Serial.println("Reporte Humedad:");
-  Serial.println("- Humedad (Interna/Externa):");
-  float h1 = dht_1.readHumidity();
-  float h2 = dht_2.readHumidity();
-  Serial.print((String)h1 + " - " + (String)h2);
-  if(isnan(h1) || isnan(h2)){
-    Serial.println();
-    Serial.print("Error en ");
-    if(isnan(h1)) Serial.print("Sensor Humedad Interna   ");
-    if(isnan(h2)) Serial.print("Sensor Humedad Externa   ");
-  }
-  Serial.println();
-}
-void makeSoilMoistReport(){
-  uint16_t sm = analogRead(SoilMoisture);
-  Serial.println("Reporte Humedad Suelo:");
-  Serial.print("- Humedad: ");
-  Serial.print(sm);
-  Serial.println("/1023"); 
-}
-void makeLuxReport(){
-  uint16_t lux = analogRead(LUX_Sens);
-  Serial.println("Reporte Luz:");
-  Serial.print("- Luz: ");
-  Serial.print(lux);
-  Serial.println("/1023"); 
-}
-
-
-
 
 // Mostrar estado actual
 void ShowState(states state){
@@ -190,21 +199,23 @@ void ShowState(states state){
         r = 0;
       }
       break;    
-    case Com_Err:
-      if(millis()-lastMillState >= 500){
+    case Com_Err: // Error en la comunicacion 
+      if(millis()-lastMillState >= 750){
         r = 1; b = 0;
+      }else if(millis()-lastMillState >= 500){
+        r = 1; b = 1;        
       }else{
-        r = 0; b = 1;
+        r = 0; b = 0;
       }
       break;
-    case Waiting:
+    case Waiting: // Espera de Escritura/Lectura
       if(millis()-lastMillState >= 500){
         g = 1;
       }else{
         g = 0;
       }
       break;    
-    case noCom:
+    case noCom: // Sin Comunicaciones
       if(millis()-lastMillState >= 500){
         b = 1;
       }else{
@@ -219,17 +230,122 @@ void ShowState(states state){
     lastMillState = millis();
   }
 }
+void SensorDataCheckEEPROM(Sensor *sensor){
+  uint16_t offset = 128;
+  if(sensor->id > 127) return;
+  uint8_t id_content = EEPROM.read(sensor->id);
+  for(uint16_t i = 0; i<sensor->id; i++){
+    offset = offset + EEPROM.read(i);      
+  }   
+  if(id_content == 0 || id_content > 32){
+    if(sensor->storage_length == 0 || sensor->storage_length > 32) return;
+    EEPROM.update(sensor->id, sensor->storage_length);
+    EEPROM.update(offset    , sensor->min_val       );
+    EEPROM.update(offset+1  , sensor->max_val       );
+  }else{     
+    sensor->min_val = EEPROM.read(offset  );
+    sensor->max_val = EEPROM.read(offset+1);
+  }
+}
+void SensorDataUpdateEEPROM(Sensor *sensor){
+  uint16_t offset = 128;
+  if(sensor->id > 127) return;
+  for(uint16_t i = 0; i<sensor->id; i++){
+    offset = offset + EEPROM.read(i);      
+  }   
+  if(sensor->storage_length == 0 || sensor->storage_length > 32) return;
+  EEPROM.update(sensor->id, sensor->storage_length);
+  EEPROM.update(offset    , sensor->min_val       );
+  EEPROM.update(offset+1  , sensor->max_val       );
+}
+void PrintAllEEPROM(){
+  String line = "";
+  for(uint16_t i = 0; i < EEPROM.length()/16; i++){
+    for(uint16_t j = 0; j < 16; j++){
+      uint8_t value = EEPROM.read(i*16+j);
+      line = line + "0x" + String(value,HEX) + " ";
+    }
+    Serial.println(line);
+    line = "";
+    if((i+1)%8 == 0)  Serial.println();
+  }
+}
+
+
+/*
+void processCommand(String command, Stream* port) {
+  for (int i = 0; i < sizeof(MMCommandMap) / 2; i++) {
+    if (command.equals(MMCommandMap[i].command)) {
+      void (*functionPtr)(String,Stream*);
+      functionPtr = reinterpret_cast<void (*)(Stream*)>(MMCommandMap[i].function); // No se que chucha pero funcionó
+      functionPtr(command,port);
+      return;
+    }
+  }
+  
+  // Si no se encuentra una coincidencia, esque eres bruto
+  port->println("Comando no válido");
+}*/
+
+
+void processCommand(String command, Stream* port) {
+  for (int i = 0; i < sizeof(MMCommandMap) / 2; i++) {
+    if (command.equalsignorecase(MMCommandMap[i].command)) {
+      void (*functionPtr)(String, Stream*) = reinterpret_cast<void (*)(String, Stream*)>(MMCommandMap[i].function);
+      functionPtr(command, port);
+      return;
+    }
+  }
+  
+  // Si no se encuentra una coincidencia
+  port->println("Comando no válido");
+}
+
+
+
+void getSensorDataCommand(String command, Stream* port){
+  
+}
+void startSensorCommand(String command, Stream* port){
+
+}
+void stopSensorCommand(String command, Stream* port){
+  
+}
+void getSensorListCommand(String command, Stream* port){
+
+}
+void saveConfigurationCommand(String command, Stream* port){
+  
+}
+void loadConfigurationCommand(String command, Stream* port){
+  
+}
+
+
+
+// Utilidades
+void OpenWindow(){}
+void Heater(bool is_on){}
+
+
+
+
+
+
+
 
 
 
 /*
 
-typedef enum{
-  Working, Failed, Compromized, Com_Err, Waiting, noCom
-} states;
+Por si los uso
+
+void enviarValorSerial(Stream* serialPtr, int valor) {
+  serialPtr->println(valor);
+}
 
 */
-
 
 
 
